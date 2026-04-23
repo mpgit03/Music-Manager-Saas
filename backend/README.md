@@ -1,221 +1,232 @@
-# Project Management API
+# 🎧 Music Manager SaaS
 
-A secure **RESTful backend API** for managing projects and tasks.
-Built with **Node.js, Express, and MongoDB**, this API demonstrates authentication, authorization, file uploads, validation, and production-level backend practices.
-
----
-
-## Features
-
-* **JWT Authentication** – Secure user registration and login
-* **Role-Based Access Control (RBAC)** – Control access to protected routes
-* **Project Management** – Create, update, delete, and view projects
-* **Task Management** – Manage tasks within projects
-* **Ownership Authorization** – Users can only modify resources they own
-* **Pagination, Filtering & Search** – Efficient querying of projects and tasks
-* **File Uploads** – Attach files to tasks using Multer
-* **Input Validation** – Request validation with `express-validator`
-* **Security Middleware**
-
-  * Helmet (HTTP security headers)
-  * Rate limiting
-  * CORS protection
-* **Swagger API Documentation**
-* **Structured Error Handling**
+A full-stack SaaS application that allows users to **convert playlists across platforms (Spotify → YouTube)** using a **scalable async processing system** with real-time progress tracking and failure recovery.
 
 ---
 
-## Tech Stack
+## 🚀 Live Status
 
-**Backend**
-
-* Node.js
-* Express.js
-
-**Database**
-
-* MongoDB
-* Mongoose ODM
-
-**Authentication & Security**
-
-* JSON Web Tokens (JWT)
-* bcrypt
-* express-rate-limit
-* helmet
-
-
-**Utilities**
-
-* multer (file uploads)
-* express-validator
-* morgan (logging)
-* swagger-jsdoc
-* swagger-ui-express
+🟡 Backend: **Production-ready**
+🟡 Frontend: **Core flows complete (Dashboard, Playlists, Conversions)**
+🟢 Conversion Pipeline: **Working end-to-end**
+🟡 Retry System: **In progress**
 
 ---
 
-## API Documentation
+## ✨ Features
 
-Interactive Swagger documentation is available at:
+### 🔐 Authentication & Accounts
 
-```
-/api-docs
-```
-
-Example:
-
-```
-http://localhost:5000/api-docs
-```
+* JWT-based authentication
+* Spotify OAuth integration
+* YouTube OAuth integration
+* Multi-platform account linking
 
 ---
 
-## Project Structure
+### 🎵 Playlist Management
 
+* Fetch user playlists from Spotify
+* Normalize playlist data for cross-platform compatibility
+* View playlists in dashboard UI
+
+---
+
+### 🔄 Playlist Conversion (Core Feature)
+
+* Convert Spotify playlists → YouTube playlists
+* Track conversion progress in real-time
+* Store converted playlist metadata
+
+---
+
+### ⚙️ Async Job Processing (Core Engineering)
+
+* Queue-based architecture using BullMQ + Redis
+* Worker processes for background conversion
+* Parallel track processing for performance
+* Status tracking: `pending → processing → completed/failed`
+
+---
+
+### 📊 Progress Tracking
+
+* Tracks:
+
+  * total songs
+  * successfully converted
+  * failed conversions
+* Live progress updates in UI
+* Conversion status APIs
+
+---
+
+### ❌ Failure Handling
+
+* Track-level failure detection
+* Error logging per track
+* Partial success support (system doesn’t crash on failure)
+
+---
+
+### 🔁 Retry System (In Progress)
+
+* Retry only failed tracks (not full playlist)
+* Backend logic implemented
+* Frontend retry buttons integrated
+* Worker optimization ongoing
+
+---
+
+## 🧠 System Design Overview
+
+```text
+User Action → API → Queue → Worker → External APIs → DB → UI अपडेट
 ```
+
+### Flow:
+
+1. User starts conversion
+2. Backend creates a job
+3. Job is pushed to queue
+4. Worker processes tracks asynchronously
+5. Results stored in DB
+6. Frontend polls for progress
+
+---
+
+## 🏗️ Tech Stack
+
+### Backend
+
+* Node.js + Express
+* MongoDB + Mongoose
+* BullMQ (Queue system)
+* Redis (Job processing)
+* Spotify Web API
+* YouTube Data API
+
+### Frontend
+
+* Next.js (App Router)
+* Axios
+* Tailwind CSS
+
+---
+
+## 📁 Project Structure
+
+```text
 backend/
-│
-├── config/
-│     db.js
-│     swagger.js
-│
-├── controllers/
-│     authController.js
-│     projectController.js
-│     taskController.js
-│
-├── middleware/
-│     authMiddleware.js
-│     checkOwnership.js
-│     errorHandler.js
-│     notFound.js
-│     validateRequest.js
-│
-├── models/
-│     User.js
-│     Project.js
-│     Task.js
-│
-├── routes/
-│     authRoutes.js
-│     projectRoutes.js
-│     taskRoutes.js
-│
-├── uploads/
-│
-├── utils/
-│     asyncHandler.js
-│
-├── server.js
-└── package.json
+  controllers/
+  models/
+  routes/
+  services/
+  queues/
+  workers/
+  utils/
+
+music-manager-frontend/
+  app/
+    dashboard/
+    playlists/
+    conversions/
 ```
 
 ---
 
-## Installation
+## ⚡ Key Engineering Highlights
 
-Clone the repository:
+* Designed **async job pipeline** instead of blocking APIs
+* Implemented **fault-tolerant system** with partial success handling
+* Built **retry mechanism for failed tasks**
+* Optimized conversion using **parallel processing**
+* Structured backend using **service-layer architecture**
 
-```
-git clone https://github.com/YOUR_USERNAME/project-management-api.git
-cd project-management-api
-```
+---
 
-Install dependencies:
+## 📊 Current Progress
 
-```
+### ✅ Completed
+
+* Spotify OAuth
+* YouTube OAuth
+* Playlist fetching
+* Playlist conversion engine
+* Async queue + worker system
+* Conversion tracking APIs
+* Frontend dashboard & conversions UI
+
+### 🚧 In Progress
+
+* Retry system optimization
+* Improved error handling & recovery
+* UI polish and UX improvements
+
+### 🔜 Planned
+
+* WebSockets (real-time updates instead of polling)
+* Better track matching (ISRC + fuzzy search)
+* Rate limit handling (YouTube API quota)
+* Deployment (Docker + cloud)
+
+---
+
+## 🧪 Running Locally
+
+### Backend
+
+```bash
+cd backend
 npm install
-```
-
----
-
-## Environment Variables
-
-Create a `.env` file in the root directory.
-
-Example:
-
-```
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
-```
-
----
-
-## Running the Server
-
-Development mode:
-
-```
 npm run dev
 ```
 
-Production mode:
+### Frontend
 
-```
-npm start
-```
-
-Server runs on:
-
-```
-http://localhost:5000
+```bash
+cd music-manager-frontend
+npm install
+npm run dev
 ```
 
 ---
 
-## Example API Endpoints
+## 🔐 Environment Variables
 
-### Authentication
+Create a `.env` file in backend:
 
-```
-POST /api/auth/register
-POST /api/auth/login
-```
+```env
+MONGO_URI=
+JWT_SECRET=
 
-### Projects
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REDIRECT_URI=
 
-```
-GET    /api/projects
-POST   /api/projects
-PUT    /api/projects/:id
-DELETE /api/projects/:id
-```
+YOUTUBE_CLIENT_ID=
+YOUTUBE_CLIENT_SECRET=
+YOUTUBE_REDIRECT_URI=
 
-### Tasks
-
-```
-GET    /api/projects/:projectId/tasks
-POST   /api/projects/:projectId/tasks
-PUT    /api/tasks/:id
-DELETE /api/tasks/:id
+REDIS_URL=
 ```
 
 ---
 
-## Security Practices Implemented
+## 🎯 What This Project Demonstrates
 
-* Password hashing with bcrypt
-* JWT authentication
-* Request validation
-* MongoDB query sanitization
-* API rate limiting
-* Secure HTTP headers
+This project is not just CRUD — it demonstrates:
 
----
-
-## Future Improvements
-
-* Redis caching
-* Background jobs (queues)
-* Automated testing (Jest / Supertest)
-* Docker containerization
-* CI/CD pipeline
+* Async system design
+* External API integration
+* Fault tolerance & retry logic
+* Scalable backend architecture
+* Real-world SaaS thinking
 
 ---
 
-## Author
+## 👨‍💻 Author
 
-Built as a backend engineering project demonstrating modern **Node.js API development practices**.
+Built as part of a focused effort to develop **production-level backend engineering skills** and **full-stack SaaS architecture understanding**.
+
+---
