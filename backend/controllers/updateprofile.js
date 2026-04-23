@@ -5,9 +5,8 @@ export const updateprofile  = asynchandler(
     async (req,res)=>{
     const user = await User.findById(req.user._id);
     if(!user){
-        res.status(404).json({
-            message:"User not found"
-        })
+        res.status(404);
+        throw new Error("User not found");
     }
 
     user.name = req.body.name|| user.name;

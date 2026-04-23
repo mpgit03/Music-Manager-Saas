@@ -11,14 +11,14 @@ dotenv.config()
 import express from "express"
 import { connectDB } from "./config/db.js"
 import authRoutes from "./routes/authRoutes.js"
-import adminRoutes from "./routes/adminRoutes.js";
+import youtubeRoutes from "./routes/youtubeRoutes.js"
+import conversionRoutes from "./routes/conversionRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
 import spotifyRoutes from "./routes/spotifyRoutes.js"
 import notFound from "./middleware/notFound.js"
 import {errorhandler} from "./middleware/errorHandler.js" 
-import projectRoutes from "./routes/projectRoutes.js"
-import taskRoutes from "./routes/taskRoutes.js"
-import mongoSanitize from "express-mongo-sanitize";
+
+
 import rateLimit from "express-rate-limit";
 import { timeStamp } from "node:console";
 
@@ -46,7 +46,7 @@ app.use(cors({
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Project Management API",
+    message: "Music Management Api",
     docs: "/api-docs"
   });
 });
@@ -74,13 +74,7 @@ app.get("/health",(req,res)=>{
         timeStamp: new Date().toISOString(),
     });
 });
-
-
-app.get("/", (req, res) => {
-    res.send("api running");
-});
-
-app.use("/api/admin",adminRoutes); 
+ 
 
 //rate limiting login route
 app.use("/api/auth/login",rateLimit({
@@ -92,11 +86,13 @@ app.use("/api/auth/login",rateLimit({
 
 app.use("/api/spotify",spotifyRoutes);
 
+app.use("/api/auth/youtube", youtubeRoutes);
+
+app.use("/api/conversions", conversionRoutes ); // conversion related routes
+
 app.use("/api/auth", authRoutes); // login register
 
 app.use("/api/users",userRoutes) // user routes
-
-app.use("/api/projects",projectRoutes); //project route and taskroutes 
 
 app.use("/uploads",express.static("uploads"));
 
@@ -107,4 +103,5 @@ app.use(errorhandler);  // Catches actual code errors
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log("REDIS:", process.env.REDIS_URL);
 });

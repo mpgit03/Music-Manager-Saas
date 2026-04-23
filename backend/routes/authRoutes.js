@@ -1,6 +1,7 @@
 import express from "express"
 import { registerValidator,loginValidator } from "../middleware/validator/authValidators.js";
 import { getMe, loginUser, registerUser } from "../controllers/authController.js"
+import { protect } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 const router = express.Router();
 
@@ -29,7 +30,7 @@ const router = express.Router();
  *         description: User created
  */
 
-router.post("/register",registerValidator,validateRequest,registerUser)
+router.post("/register",registerUser)
 
 
 
@@ -62,7 +63,9 @@ router.post("/register",registerValidator,validateRequest,registerUser)
  *       401:
  *         description: Invalid email or password
  */
-router.post("/login",loginValidator,validateRequest,loginUser)
+router.post("/login",loginUser)
+
+router.get("/me" ,protect , getMe)
 
 export default router;
 
