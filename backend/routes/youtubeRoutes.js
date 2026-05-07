@@ -12,7 +12,7 @@ router.get("/login",connectYouTube);
 
 router.get("/callback", youtubecallback);
 
-router.get("/reconnect" , protect ,youtubeReconnect);
+router.get("/reconnect" ,protect ,youtubeReconnect);
 
 // router.get("/create_playlist" , protect , createPlaylistonYoutubecontroller);
 

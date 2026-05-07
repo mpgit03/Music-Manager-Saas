@@ -5,20 +5,23 @@ import { asynchandler } from "../middleware/asynchandler.js";
 import { createSpotifyClient } from "../utils/spotifyClient.js";
 import { getValidSpotifyToken } from "../utils/spotifyToken.js";
 
+
+// 🔥 CONVERT PLAYLIST
 export const convertPlaylistController = asynchandler(
   async (req, res) => {
     const { playlistId } = req.params;
 
-    // ✅ 1. Prevent duplicate ACTIVE conversions
+    //  Prevent duplicate ACTIVE conversions
     const existingActive = await convertedPlaylist.findOne({
       user: req.user._id,
       sourcePlaylistId: playlistId,
       targetPlatform: "youtube",
-      status: { $in: ["queued", "processing"] },
+      status: { $in: ["queued", "processing", "retrying"] }, 
     });
 
+    ///  why 
     if (existingActive) {
-      console.log("Resuming stuck conversion:", existingActive._id);
+      console.log("Resuming conversion:", existingActive._id);
 
       await conversionQueue.add("convert-playlist", {
         conversionId: existingActive._id,
@@ -30,12 +33,12 @@ export const convertPlaylistController = asynchandler(
       });
     }
 
-    // ✅ 2. Return already completed conversion
+    // Return already completed OR partial
     const existingCompleted = await convertedPlaylist.findOne({
       user: req.user._id,
       sourcePlaylistId: playlistId,
       targetPlatform: "youtube",
-      status: "completed",
+      status: { $in: ["completed", "partial_success"] }, // 🔥 updated
     });
 
     if (existingCompleted) {
@@ -59,21 +62,17 @@ export const convertPlaylistController = asynchandler(
 
     const accessToken = await getValidSpotifyToken(account);
 
-    // ✅ 4. Validate playlist via Spotify API
+    // ✅ 4. Validate playlist via Spotify
     const spotifyApi = createSpotifyClient(accessToken);
 
-    let playlist;
     let playlistName;
 
     try {
       const response = await spotifyApi.getPlaylist(playlistId);
-      playlist = response.body;
-      playlistName = playlist.name;
+      playlistName = response.body.name;
     } catch (err) {
       if (err.statusCode === 404) {
-        return res.status(400).json({
-          message: "Playlist not found",
-        });
+        return res.status(400).json({ message: "Playlist not found" });
       }
 
       if (err.statusCode === 403) {
@@ -88,10 +87,10 @@ export const convertPlaylistController = asynchandler(
         });
       }
 
-      throw err; // handled by asyncHandler
+      throw err;
     }
 
-    // ✅ 5. Create conversion + queue job (with race condition handling)
+    // ✅ 5. Create conversion (safe against race)
     let conversion;
 
     try {
@@ -100,18 +99,16 @@ export const convertPlaylistController = asynchandler(
         sourcePlatform: "spotify",
         targetPlatform: "youtube",
         sourcePlaylistId: playlistId,
-        sourcePlaylistName:playlistName,
+        sourcePlaylistName: playlistName,
         status: "queued",
       });
-      console.log(playlistName);
     } catch (err) {
-      // 🔥 Handle duplicate key error from partial index
       if (err.code === 11000) {
         const existing = await convertedPlaylist.findOne({
           user: req.user._id,
           sourcePlaylistId: playlistId,
           targetPlatform: "youtube",
-          status: { $in: ["queued", "processing"] },
+          status: { $in: ["queued", "processing", "retrying"] },
         });
 
         return res.json({
@@ -123,7 +120,7 @@ export const convertPlaylistController = asynchandler(
       throw err;
     }
 
-    // ✅ 6. Add job to queue
+    // ✅ 6. Queue job
     await conversionQueue.add("convert-playlist", {
       conversionId: conversion._id,
     });
@@ -135,6 +132,8 @@ export const convertPlaylistController = asynchandler(
   }
 );
 
+
+// 🔁 RETRY CONVERSION
 export const retryConversion = asynchandler(async (req, res) => {
   const { conversionId } = req.params;
 
@@ -145,50 +144,37 @@ export const retryConversion = asynchandler(async (req, res) => {
     throw new Error("Conversion not found");
   }
 
+  // 🔐 Authorization
   if (conversion.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Not authorized");
   }
 
-  // Allow retry ONLY if failed
-  if (conversion.status !== "failed") {
+  // 🔍 Find failed tracks (NEW SCHEMA)
+  const failedTracks = conversion.tracks.filter(
+    (track) => track.target?.status === "failed"
+  );
+
+  if (failedTracks.length === 0) {
     res.status(400);
-    throw new Error("Only failed conversions can be retried");
+    throw new Error("No failed tracks to retry");
   }
 
-  // Optional: ensure it's a reconnect failure
-  // (you can relax this later)
-  if (conversion.error !== "YOUTUBE_RECONNECT_REQUIRED") {
-    res.status(400);
-    throw new Error("This conversion cannot be retried");
-  }
-
-  //  Reset state
-  conversion.status = "queued";
-  conversion.error = null;
-
-  conversion.progress = {
-    total: conversion.totalTracks || 0,
-    processed: 0,
-    success: 0,
-    failed: 0
-  };
-
-  await conversion.save();
-
-  //  Add back to queue
+  // 🔁 Queue retry job
   await conversionQueue.add("convert-playlist", {
     conversionId: conversion._id,
+    retryOnly: true,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
-    message: "Conversion retried successfully"
+    message: "Retry started",
+    retryCount: failedTracks.length,
   });
 });
 
 
-// 📊 Get all conversions
+// 📊 GET ALL CONVERSIONS
 export const getConversions = async (req, res) => {
   const conversions = await convertedPlaylist.find({
     user: req.user._id,
@@ -198,7 +184,8 @@ export const getConversions = async (req, res) => {
   res.json(conversions);
 };
 
-// 📊 Get single conversion
+
+// 📊 GET SINGLE CONVERSION
 export const getConversionById = async (req, res) => {
   const conversion = await convertedPlaylist.findOne({
     _id: req.params.id,

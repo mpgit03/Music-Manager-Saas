@@ -38,7 +38,14 @@ const convertedPlaylistSchema = new mongoose.Schema(
     // 📊 Job state
     status: {
       type: String,
-      enum: ["queued", "processing", "completed", "failed"],
+      enum: [
+      "queued",
+      "processing",
+      "retrying",
+      "completed",
+      "partial_success",
+      "failed"
+    ],
       default: "queued",
     },
 
@@ -91,11 +98,24 @@ const convertedPlaylistSchema = new mongoose.Schema(
         },
 
         target: {
-          id: String,
-          platform: String,
-          title: String,
-          url: String,
-        },
+  id: String,
+  platform: String,
+  title: String,
+  url: String,
+
+  status: {
+    type: String,
+    enum: ["pending", "success", "failed"],
+    default: "pending"
+  },
+
+  error: String,
+
+  retryCount: {
+    type: Number,
+    default: 0
+  }
+},
       },
     ],
   },

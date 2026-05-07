@@ -137,13 +137,34 @@ export default function Dashboard() {
           </span>
 
           <button
-            onClick={() => {
-              window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/youtube/login?userId=${user._id}`;
-            }}
-            className="bg-gray-500 text-white px-3 py-1 rounded"
-          >
-            Reconnect
-          </button>
+          onClick={async () => {
+
+            try {
+              const token = localStorage.getItem("token");
+
+              const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/youtube/reconnect`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+
+              const data = await res.json();
+
+              if (data.authUrl) {
+                window.location.href = data.authUrl;
+              }
+
+            } catch (err) {
+              console.error("Reconnect failed:", err);
+            }
+          }}
+          className="bg-gray-500 text-white px-3 py-1 rounded"
+        >
+          Reconnect
+        </button>
         </div>
       ) : (
         <button

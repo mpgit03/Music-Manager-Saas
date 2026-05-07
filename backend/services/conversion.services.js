@@ -1,4 +1,3 @@
-//import models
 import ConvertedPlaylist from "../models/convertedplaylist.js";
 import Account from "../models/Account.js";
 import { getValidYoutubeToken } from "../utils/youtubeToken.js";
@@ -8,36 +7,17 @@ import { normalizePlaylistTracks } from "../utils/spotifyNormalizer.js";
 import { convertPlaylistToYouTube } from "./youtube.services.js";
 import { createYouTubePlaylist } from "./youtube.services.js";
 import { addVideoToYoutubePlaylistInternal } from "./youtube.services.js";
-console.log("🔥 DEBUG IMPORT:", getValidYoutubeToken);
 
-
-export const processConversion = async (conversionId) => {
+export const processConversion = async (
+  conversion,
+  tracksToProcess = null
+) => {
   try {
-
-    const existingConversion = await ConvertedPlaylist.findById(conversionId);
-    if(!existingConversion){
-      throw new Error("conversion not found");
-    }
-    // 1. Mark as processing (single update)
-    const conversion = await ConvertedPlaylist.findByIdAndUpdate(
-      conversionId,
-      {
-        status: "processing",
-        progress: {
-          total: existingConversion?.tracks?.length || 0,
-          processed: 0,
-          success: 0,
-          failed: 0,
-        },
-      },
-      { returnDocument: "after" }
-    );
-
     if (!conversion) {
       throw new Error("Conversion not found");
     }
 
-    // 2. Get accounts
+    // 🔹 Get accounts
     const spotifyAccount = await Account.findOne({
       user: conversion.user,
       provider: "spotify",
@@ -56,73 +36,85 @@ export const processConversion = async (conversionId) => {
       throw new Error("YouTube account not connected");
     }
 
-    // 3. Get valid tokens
-    const spotifyToken = await getValidSpotifyToken(spotifyAccount);
-    const youtubeToken = await getValidYoutubeToken(ytAccount);
-
-    // 4. Fetch & normalize Spotify tracks
-    const data = await getPlaylistTracks(
-      spotifyToken,
-      conversion.sourcePlaylistId
+    // 🔹 Tokens
+    const spotifyToken = await getValidSpotifyToken(
+      spotifyAccount
     );
 
-    const items = Array.isArray(data) ? data : data?.items || [];
-    const normalizedTracks = normalizePlaylistTracks(items);
+    const youtubeToken = await getValidYoutubeToken(
+      ytAccount
+    );
 
-    console.log("🎵 Tracks fetched:", normalizedTracks.length);
+    // 🔹 FIRST RUN ONLY → Fetch + normalize + match
+    if (
+      !conversion.tracks ||
+      conversion.tracks.length === 0
+    ) {
+      const data = await getPlaylistTracks(
+        spotifyToken,
+        conversion.sourcePlaylistId
+      );
 
-    // 5. Match + store tracks (first time only)
-    if (!conversion.tracks || conversion.tracks.length === 0) {
-      console.log(" Matching tracks...");
+      const items = Array.isArray(data)
+        ? data
+        : data?.items || [];
 
-      const convertedTracks = await convertPlaylistToYouTube(normalizedTracks);
+      const normalizedTracks =
+        normalizePlaylistTracks(items);
 
-      await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-        tracks: convertedTracks,
-        totalTracks: convertedTracks.length,
-        progress: {
-          total: convertedTracks.length,
-          processed: 0,
-          success: 0,
-          failed: 0,
-        },
-      });
+      console.log(
+        "🎵 Tracks fetched:",
+        normalizedTracks.length
+      );
+
+      const convertedTracks =
+        await convertPlaylistToYouTube(
+          normalizedTracks
+        );
 
       conversion.tracks = convertedTracks;
+      conversion.totalTracks =
+        convertedTracks.length;
+
+      await conversion.save();
     }
 
-    // 6. Create YouTube playlist
-    const playlistName = conversion.sourcePlaylistName || "Converted Playlist" ;
+    //  Decide tracks AFTER fetching
+    const tracks =
+      tracksToProcess || conversion.tracks;
 
-    const { id: youtubePlaylistId } = await createYouTubePlaylist(
-      youtubeToken,
-      `${playlistName} (Converted)`
-    );
+    // 🔹 Create playlist ONLY once
+    let youtubePlaylistId =
+      conversion.targetPlaylistId;
 
-    await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-      targetPlaylistId: youtubePlaylistId,
-    });
+    if (!youtubePlaylistId) {
+      const res = await createYouTubePlaylist(
+        youtubeToken,
+        `${
+          conversion.sourcePlaylistName ||
+          "Converted"
+        } (Converted)`
+      );
 
-    // 7. Add videos
-    let matched = 0;
-    let failed = 0;
-    let processed = 0;
-    let failedTracksData = [];
+      youtubePlaylistId = res.id;
 
-    for (let i = 0; i < conversion.tracks.length; i++) {
-      const track = conversion.tracks[i];
+      conversion.targetPlaylistId =
+        youtubePlaylistId;
+
+      await conversion.save();
+    }
+
+    // 🔹 PROCESS TRACKS
+    for (let track of tracks) {
       const videoId = track?.target?.id;
 
+      // ❌ No match found
       if (!videoId) {
-        failed++;
-        processed++;
-
-        failedTracksData.push({
-          title: track.title,
-          artists: track.artists || [],
-          videoId: null,
-          reason: "No YouTube match found",
-        });
+        track.target = {
+          ...track.target,
+          status: "failed",
+          error: "No YouTube match found",
+        };
 
         continue;
       }
@@ -133,99 +125,163 @@ export const processConversion = async (conversionId) => {
           videoId,
           youtubeToken,
         });
-        matched++;
+
+        track.target = {
+          ...track.target,
+          status: "success",
+          error: null,
+        };
+
       } catch (err) {
-        console.error("❌ Failed to add video:", videoId);
-
-        failed++;
-
-        failedTracksData.push({
-          title: track.title,
-          artists: track.artists || [],
-          videoId,
-          reason: err.message,
-        });
+        track.target = {
+          ...track.target,
+          status: "failed",
+          error: err.message,
+        };
       }
 
-      processed++;
-
-      // Update progress every 5 tracks
-      if (i % 5 === 0 || i === conversion.tracks.length - 1) {
-        await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-          progress: {
-            total: conversion.tracks.length,
-            processed,
-            success: matched,
-            failed,
-          },
-          matchedTracks: matched,
-          failedTracks: failed,
-        });
-      }
-
-      await new Promise((res) => setTimeout(res, 300));
+      // ⚡ Small delay (rate limit protection)
+      await new Promise((res) =>
+        setTimeout(res, 300)
+      );
     }
 
-    // 8. Final update
-    await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-      status: "completed",
-      progress: {
-        total: conversion.tracks.length,
-        processed,
-        success: matched,
-        failed,
-      },
-      matchedTracks: matched,
-      failedTracks: failed,
-      failedTracksData,
-    });
+    // 🔹 Save updated tracks
+    await conversion.save();
 
-    console.log(" Conversion completed");
+    // 🔹 Compute progress
+    const success = conversion.tracks.filter(
+      (t) => t.target?.status === "success"
+    ).length;
+
+    const failed = conversion.tracks.filter(
+      (t) => t.target?.status === "failed"
+    ).length;
+
+    const total = conversion.tracks.length;
+      const failedTracksData = conversion.tracks
+      .filter((t) => t.target?.status === "failed")
+      .map((t) => ({
+        title: t.title,
+
+        artists: t.artists,
+
+        videoId:
+          t.target?.id || null,
+
+        reason:
+          t.target?.error ||
+          "Unknown error",
+      }));
+
+
+    // 🔹 Update progress
+    await ConvertedPlaylist.findByIdAndUpdate(
+      conversion._id,
+      {
+        progress: {
+          total,
+          processed: success + failed,
+          success,
+          failed,
+        },
+
+        matchedTracks: success,
+
+        failedTracks: failed,
+
+        failedTracksData,
+      }
+    );
+
+    // 🔹 Final status
+    let status = "completed";
+
+    if (failed > 0 && success > 0) {
+      status = "partial_success";
+    } else if (failed === total) {
+      status = "failed";
+    }
+
+    await ConvertedPlaylist.findByIdAndUpdate(
+      conversion._id,
+      {
+        status,
+      }
+    );
+
+    console.log("✅ Conversion step completed");
+
   } catch (error) {
-    console.error("FULL ERROR:", error.message);
+    console.error(
+      "❌ FULL ERROR:",
+      error.message
+    );
 
-    // 🔥 Handle reconnect separately
-    if (error.message === "YOUTUBE_RECONNECT_REQUIRED") {
-      await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-        status: "failed",
-        error: "YOUTUBE_RECONNECT_REQUIRED",
-      });
+    if (
+      error.message ===
+      "YOUTUBE_RECONNECT_REQUIRED"
+    ) {
+      await ConvertedPlaylist.findByIdAndUpdate(
+        conversion._id,
+        {
+          status: "failed",
+          error:
+            "YOUTUBE_RECONNECT_REQUIRED",
+        }
+      );
+
     } else {
-      await ConvertedPlaylist.findByIdAndUpdate(conversionId, {
-        status: "failed",
-        error: error.message,
-      });
+      await ConvertedPlaylist.findByIdAndUpdate(
+        conversion._id,
+        {
+          status: "failed",
+          error: error.message,
+        }
+      );
     }
 
-    throw error; // let worker decide retry
+    throw error;
   }
 };
 
-
-const safeAdd = async({
+// 🔁 Internal retry for adding video
+const safeAdd = async ({
   youtubePlaylistId,
   videoId,
   youtubeToken,
-  retries =3
-})=>{
-  try{
+  retries = 3,
+}) => {
+  try {
     await addVideoToYoutubePlaylistInternal(
       youtubePlaylistId,
       videoId,
-      youtubeToken);
-  } catch(err){
+      youtubeToken
+    );
+
+  } catch (err) {
     const status = err?.response?.status;
-    if ((status === 409 || status >= 500) && retries > 0) {
-      console.log(`🔁 Retry (${3 - retries + 1}) for: ${videoId}`);
-      await new Promise(res => setTimeout(res, 500));
+
+    if (
+      (status === 409 || status >= 500) &&
+      retries > 0
+    ) {
+      console.log(
+        `🔁 Retry (${3 - retries + 1}) for: ${videoId}`
+      );
+
+      await new Promise((res) =>
+        setTimeout(res, 500)
+      );
 
       return safeAdd({
         youtubePlaylistId,
         videoId,
         youtubeToken,
-        retries: retries - 1
+        retries: retries - 1,
       });
+    }
+
+    throw err;
   }
-   throw err;
-}
 };

@@ -127,21 +127,27 @@ try {
   });
 
 // Youtube reconnect for refresh token expiry error
-  export const youtubeReconnect = asynchandler(async (req, res) => {
-  const userId = req.user._id;
+ export const youtubeReconnect = asynchandler(
+  async (req, res) => {
 
-  const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID,
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-    response_type: "code",
-    scope: "https://www.googleapis.com/auth/youtube",
-    access_type: "offline",
-    prompt: "consent", //  ensures refresh_token
-    state: userId.toString(),
-  });
+    const userId = req.user._id;
 
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    const params = new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+      response_type: "code",
+      scope: "https://www.googleapis.com/auth/youtube",
+      access_type: "offline",
+      prompt: "consent",
+      state: userId.toString(),
+    });
 
-  res.redirect(authUrl);
-});
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
+    
+    res.json({
+      authUrl,
+    });
+  }
+);

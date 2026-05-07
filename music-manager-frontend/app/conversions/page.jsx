@@ -9,8 +9,7 @@ export default function ConversionsPage() {
   const [conversions, setConversions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [retryingId, setRetryingId] = useState(null);
-  
-  
+
   const fetchConversions = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -30,7 +29,7 @@ export default function ConversionsPage() {
       } catch (err) {
         const text = await res.text();
         console.error("Non-JSON response:", text);
-        return; // stop execution safely
+        return;
       }
 
       setConversions(Array.isArray(data) ? data : []);
@@ -47,7 +46,7 @@ export default function ConversionsPage() {
       const token = localStorage.getItem("token");
       setRetryingId(id);
 
-      const res = await fetch(
+      await fetch(
         `http://localhost:5000/api/conversions/${id}/retry`,
         {
           method: "POST",
@@ -57,17 +56,8 @@ export default function ConversionsPage() {
         }
       );
 
-      let data;
-
-      try {
-        data = await res.json();
-      } catch (err) {
-        const text = await res.text();
-        console.error("Retry response error:", text);
-        return;
-      }
-
-      router.push(`/conversions/${data.conversion._id}`);
+      // ✅ FIX: refresh instead of redirect
+      await fetchConversions();
     } catch (err) {
       console.error("Retry failed:", err);
     } finally {
@@ -77,34 +67,36 @@ export default function ConversionsPage() {
 
   const [isPolling, setIsPolling] = useState(false);
 
-useEffect(() => {
-  fetchConversions();
-}, []);
+  useEffect(() => {
+    fetchConversions();
+  }, []);
 
-useEffect(() => {
-  if (process.env.NODE_ENV !== "production") return;
-  if (!conversions.length) return;
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return;
+    if (!conversions.length) return;
 
-  const hasActive = conversions.some(
-    (c) => c.status === "processing" || c.status === "queued"
-  );
+    const hasActive = conversions.some(
+      (c) =>
+        c.status === "processing" ||
+        c.status === "queued" ||
+        c.status === "retrying" // ✅ FIX
+    );
 
-  if (hasActive && !isPolling) {
-    setIsPolling(true);
-  }
+    if (hasActive && !isPolling) {
+      setIsPolling(true);
+    }
 
-  if (!hasActive && isPolling) {
-    setIsPolling(false);
-  }
-}, [conversions]);
+    if (!hasActive && isPolling) {
+      setIsPolling(false);
+    }
+  }, [conversions]);
 
-useEffect(() => {
-  if (!isPolling) return;
+  useEffect(() => {
+    if (!isPolling) return;
 
-  const interval = setInterval(fetchConversions, 5000);
-  return () => clearInterval(interval);
-}, [isPolling]);
-
+    const interval = setInterval(fetchConversions, 5000);
+    return () => clearInterval(interval);
+  }, [isPolling]);
 
   if (loading) {
     return (
@@ -133,9 +125,11 @@ useEffect(() => {
     );
   }
 
-  // 🔥 sort by priority
+  // 🔥 FIXED priority
   const priority = {
     failed: 0,
+    partial_success: 0,
+    retrying: 1,
     processing: 1,
     queued: 1,
     completed: 2,
@@ -212,25 +206,22 @@ useEffect(() => {
 
                   <div className="mb-5">
                     <div className="mb-3 flex items-center justify-between">
-                    <p className="text-xs text-gray-400">Progress</p>
+                      <p className="text-xs text-gray-400">Progress</p>
 
-                    <p className="text-xs text-gray-400 tabular-nums w-[60px] text-right">
-                      {success+failed} / {total}
-                    </p>
-                  </div>
+                      <p className="text-xs text-gray-400 tabular-nums w-[60px] text-right">
+                        {success + failed} / {total}
+                      </p>
+                    </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-[#2a2a2a] flex">
-                    {/* success (green) */}
-                    <div
-                      className="bg-green-400 h-full"
-                      style={{ width: `${successPercent}%` }}
-                    />
-
-                    {/* failed (red) */}
-                    <div
-                      className="bg-red-400 h-full"
-                      style={{ width: `${failedPercent}%` }}
-                    />
-                  </div>
+                      <div
+                        className="bg-green-400 h-full"
+                        style={{ width: `${successPercent}%` }}
+                      />
+                      <div
+                        className="bg-red-400 h-full"
+                        style={{ width: `${failedPercent}%` }}
+                      />
+                    </div>
                     <p className="mt-3 text-xs text-gray-400">
                       {success} / {total} tracks
                     </p>
@@ -246,10 +237,15 @@ useEffect(() => {
                       View
                     </button>
 
-                    {conv.status === "failed" && (
+                    {/* ✅ FIXED RETRY LOGIC */}
+                    {["failed", "partial_success"].includes(conv.status) && (
                       <button
                         onClick={() => handleRetry(conv._id)}
-                        disabled={retryingId === conv._id}
+                        disabled={
+                          retryingId === conv._id ||
+                          conv.status === "processing" ||
+                          conv.status === "retrying"
+                        }
                         className={`rounded-full px-4 py-2 text-xs font-semibold text-white transition-all duration-200 hover:scale-105 ${
                           retryingId === conv._id
                             ? "cursor-not-allowed bg-[#535353]"
