@@ -6,7 +6,7 @@ import { createSpotifyClient } from "../utils/spotifyClient.js";
 import { getValidSpotifyToken } from "../utils/spotifyToken.js";
 
 
-// 🔥 CONVERT PLAYLIST
+
 export const convertPlaylistController = asynchandler(
   async (req, res) => {
     const { playlistId } = req.params;
@@ -159,6 +159,9 @@ export const retryConversion = asynchandler(async (req, res) => {
     res.status(400);
     throw new Error("No failed tracks to retry");
   }
+
+  conversion.status = "retrying";
+  await conversion.save();
 
   // 🔁 Queue retry job
   await conversionQueue.add("convert-playlist", {
