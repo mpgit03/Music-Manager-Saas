@@ -15,7 +15,7 @@ export default function ConversionsPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/conversions`,
+      `${process.env.NEXT_PUBLIC_API_URL}/conversions`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -50,7 +50,7 @@ export default function ConversionsPage() {
       setRetryingId(id);
 
       await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/conversions/${id}/retry`,
+        `${process.env.NEXT_PUBLIC_API_URL}/conversions/${id}/retry`,
         {
           method: "POST",
           headers: {
