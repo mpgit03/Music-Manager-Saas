@@ -9,12 +9,15 @@ const options = {
       description: "Backend API for Projects and Tasks",
     },
     servers: [
-      { 
-        url: "http://localhost:5000",
-      },
-      {url: "https://project-management-api-8pxb.onrender.com", // Add your actual Render link here
-        description: "Production server"},
-    ],
+  {
+    url: "http://localhost:5000",
+    description: "Local server",
+  },
+  {
+    url: "https://music-manager-saas.onrender.com",
+    description: "Production server",
+  },
+],
   },
   apis: ["./routes/*.js"],
   components: {

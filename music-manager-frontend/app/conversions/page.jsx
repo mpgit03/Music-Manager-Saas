@@ -14,11 +14,14 @@ export default function ConversionsPage() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/conversions", {
+      const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/conversions`,
+      {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
+      }
+      );
 
       if (!res.ok) throw new Error("Failed to fetch");
 
@@ -47,7 +50,7 @@ export default function ConversionsPage() {
       setRetryingId(id);
 
       await fetch(
-        `http://localhost:5000/api/conversions/${id}/retry`,
+        `${process.env.NEXT_PUBLIC_API_URL}/conversions/${id}/retry`,
         {
           method: "POST",
           headers: {
