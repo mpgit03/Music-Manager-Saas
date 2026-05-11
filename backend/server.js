@@ -40,9 +40,12 @@ app.use(morgan("dev"));
 app.use(helmet());
 
 app.use(cors({
-    origin:"http://localhost:3000",
-    credentials:true
-}))
+  origin: [
+    "http://localhost:3000",
+    "https://music-manager-saas.vercel.app"
+  ],
+  credentials: true
+}));
 
 app.get("/", (req, res) => {
   res.json({
