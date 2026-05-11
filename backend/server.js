@@ -1,6 +1,7 @@
 // 1. DNS Fix (Must stay at the top)
 import dns from "node:dns/promises"
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
+import "./workers/conversion.workers.js";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";    
