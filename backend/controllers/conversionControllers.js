@@ -48,7 +48,7 @@ export const convertPlaylistController = asynchandler(
       });
     }
 
-    // ✅ 3. Get Spotify account
+    //   3. Get Spotify account
     const account = await Account.findOne({
       user: req.user._id,
       provider: "spotify",
@@ -62,7 +62,7 @@ export const convertPlaylistController = asynchandler(
 
     const accessToken = await getValidSpotifyToken(account);
 
-    // ✅ 4. Validate playlist via Spotify
+    //   4. Validate playlist via Spotify
     const spotifyApi = createSpotifyClient(accessToken);
 
     let playlistName;
@@ -90,7 +90,7 @@ export const convertPlaylistController = asynchandler(
       throw err;
     }
 
-    // ✅ 5. Create conversion (safe against race)
+    //   5. Create conversion (safe against race)
     let conversion;
 
     try {
@@ -120,7 +120,7 @@ export const convertPlaylistController = asynchandler(
       throw err;
     }
 
-    // ✅ 6. Queue job
+    //   6. Queue job
     await conversionQueue.add("convert-playlist", {
       conversionId: conversion._id,
     });

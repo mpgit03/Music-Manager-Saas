@@ -99,10 +99,13 @@ function PlaylistsContent() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 py-10 sm:px-6">
-      <div className={`w-full ${isExpanded ? "max-w-6xl" : "max-w-xl"}`}>
-
+      <div
+        className={`mx-auto w-full ${
+          isExpanded ? "max-w-7xl" : "max-w-4xl"
+        }`}
+      >
         {/* TITLE + TOGGLE */}
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-left text-xl font-bold tracking-tight text-white sm:text-2xl">
             {source === "spotify"
               ? "🎧 Spotify Playlists"
@@ -110,8 +113,6 @@ function PlaylistsContent() {
           </h1>
 
           <div className="flex items-center gap-2">
-
-            {/* My Conversions Button */}
             <button
               onClick={() => router.push("/conversions")}
               className="shrink-0 rounded-full border border-white/10 bg-[#1f1f1f] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#282828]"
@@ -119,7 +120,6 @@ function PlaylistsContent() {
               My Conversions
             </button>
 
-            {/* Expand Toggle */}
             <button
               onClick={() => setIsExpanded((prev) => !prev)}
               className="shrink-0 rounded-full border border-white/10 bg-[#1f1f1f] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#282828]"
@@ -140,8 +140,8 @@ function PlaylistsContent() {
         <div
           className={`transition-all duration-300 ease-out ${
             isExpanded
-              ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
-              : "flex flex-col gap-1.5"
+              ? "grid grid-cols-2 gap-7 md:grid-cols-3 lg:grid-cols-4"
+              : "flex flex-col gap-4"
           }`}
         >
           {playlists.map((playlist) => (
@@ -149,8 +149,8 @@ function PlaylistsContent() {
               key={playlist.id}
               className={`rounded-xl border border-white/10 bg-[#181818] transition-all duration-200 ${
                 isExpanded
-                  ? "overflow-hidden shadow-md shadow-black/25 hover:scale-[1.015] hover:bg-[#202020] hover:shadow-lg hover:shadow-black/40"
-                  : "flex items-center justify-between px-2.5 py-2 hover:bg-[#282828]"
+                  ? "overflow-hidden shadow-md shadow-black/25 hover:scale-[1.02] hover:bg-[#202020] hover:shadow-lg hover:shadow-black/40"
+                  : "flex min-h-[88px] items-center justify-between px-5 py-4 hover:bg-[#282828]"
               }`}
             >
               {isExpanded ? (
@@ -167,7 +167,7 @@ function PlaylistsContent() {
                     )}
                   </div>
 
-                  <div className="flex flex-1 flex-col justify-between p-3">
+                  <div className="flex flex-1 flex-col justify-between p-4">
                     <div className="min-w-0">
                       <h2 className="truncate text-sm font-semibold text-white">
                         {playlist.name}
@@ -195,15 +195,15 @@ function PlaylistsContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-4">
                     {playlist.image ? (
                       <img
                         src={playlist.image}
                         alt={playlist.name}
-                        className="h-11 w-11 rounded-md object-cover"
+                        className="h-14 w-14 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="h-11 w-11 rounded-md bg-[#2a2a2a]" />
+                      <div className="h-14 w-14 rounded-lg bg-[#2a2a2a]" />
                     )}
 
                     <div className="min-w-0">
@@ -220,7 +220,7 @@ function PlaylistsContent() {
                   <button
                     onClick={() => handleConvert(playlist.id)}
                     disabled={convertingId === playlist.id}
-                    className={`ml-2 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 ${
+                    className={`ml-2 shrink-0 rounded-full px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 ${
                       convertingId === playlist.id
                         ? "cursor-not-allowed bg-[#535353]"
                         : "bg-[#1DB954] hover:bg-[#1ed760] active:scale-[0.98]"
