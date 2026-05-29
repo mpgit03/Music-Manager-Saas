@@ -1,145 +1,292 @@
-# Music Manager SaaS
+# 🎵 Music Manager SaaS
 
-Production-style full-stack SaaS application that enables seamless playlist transfer across music platforms like **Spotify** and **YouTube Music** using secure OAuth integrations, asynchronous job processing, and scalable backend architecture.
+Production-grade full-stack SaaS application for seamless playlist transfer across music platforms such as **Spotify** and **YouTube Music**.
+
+Built with secure OAuth integrations, asynchronous job processing, retry-safe conversion pipelines, and scalable backend architecture to handle real-world API failures, long-running tasks, and cross-platform music conversion.
 
 ---
 
-# Live Demo
+## 🚀 Live Demo
 
-🚀 Deployed Application:  
+🌐 **Live Application**
 https://music-manager-saas.vercel.app/
 
 ---
 
-# Features
+## ✨ Features
 
-- Spotify OAuth Integration
-- YouTube OAuth Integration
-- Playlist Fetching & Normalization
-- Spotify → YouTube Playlist Conversion
-- Async Conversion Queue using BullMQ + Redis
-- Real-time Conversion Progress Tracking
-- Retry Failed Tracks
-- OAuth Reconnect Flow
-- Partial Success Handling
-- Scalable Backend Architecture
-- Production-style Error Handling
-- Responsive Modern UI
-- Secure JWT Authentication
+### 🔐 Authentication & Platform Integration
+
+* Secure JWT Authentication
+* Spotify OAuth 2.0 Integration
+* YouTube OAuth 2.0 Integration
+* OAuth Reconnect Flow
+* Protected Routes & Session Handling
+
+### 🎼 Playlist Management
+
+* Fetch User Playlists
+* Playlist Metadata Normalization
+* Spotify → YouTube Playlist Conversion
+* Cross-Platform Track Matching
+
+### ⚡ Async Processing & Reliability
+
+* Background Job Processing with **BullMQ + Redis**
+* Real-Time Conversion Progress Tracking
+* Retry Failed Tracks
+* Partial Success Handling
+* Exponential Backoff Retry Logic
+* Graceful API Failure Recovery
+
+### 🎨 User Experience
+
+* Responsive Modern UI
+* Dynamic Progress Tracking
+* Conversion Status Monitoring
+* Failure Recovery Workflow
 
 ---
 
-# Tech Stack
+# 🛠 Tech Stack
 
 ## Frontend
 
-- Next.js
-- React
-- Tailwind CSS
-- Axios
+* **Next.js**
+* **React**
+* **Tailwind CSS**
+* **Axios**
 
 ## Backend
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- Redis
-- BullMQ
+* **Node.js**
+* **Express.js**
+* **MongoDB**
+* **Mongoose**
+* **Redis**
+* **BullMQ**
 
 ## APIs & Integrations
 
-- Spotify Web API
-- YouTube Data API
+* **Spotify Web API**
+* **YouTube Data API**
 
 ## Deployment
 
-- Vercel (Frontend)
-- Render (Backend)
+* **Vercel** → Frontend
+* **Render** → Backend
 
 ---
 
-# Architecture Highlights
+# 📸 Screenshots
+
+## Dashboard
+
+Responsive dashboard displaying connected platforms and playlist conversion access.
+
+![Dashboard](./assets/dashboard.png)
+
+---
+
+## Playlist Library
+
+Browse playlists fetched directly from Spotify with responsive expanded and collapsed views.
+
+![Playlists](./assets/playlists.png)
+
+---
+
+## Conversion Progress Tracking
+
+Real-time conversion progress powered by asynchronous BullMQ workers.
+
+![Conversion Progress](./assets/myconversions.png)
+
+---
+
+## Retry Failed Tracks
+
+Selective retry system allowing recovery of failed tracks without rerunning the entire playlist conversion.
+
+![Retry Failed Tracks](./assets/retry-tracks.png)
+
+---
+
+# 🏗 System Architecture
+
+```text
+User
+  ↓
+Frontend (Next.js)
+  ↓
+Express API Server
+  ↓
+BullMQ Queue
+  ↓
+Redis
+  ↓
+Worker Process
+  ↓
+Spotify Playlist Fetch
+  ↓
+Track Normalization
+  ↓
+YouTube Track Matching
+  ↓
+Playlist Creation
+  ↓
+MongoDB Status Updates
+  ↓
+Frontend Progress Tracking
+```
+
+---
+
+# ⚙️ Engineering Highlights
 
 ## OAuth-Based Multi-Platform Integration
 
-Implemented secure OAuth 2.0 authentication flows for both Spotify and YouTube, including token exchange, refresh handling, and account linking workflows.
+Implemented secure OAuth 2.0 authentication flows for both Spotify and YouTube, including:
+
+* Authorization flow
+* Token exchange
+* Refresh token handling
+* Account linking
+* OAuth reconnect workflows
+
+This enables secure playlist access without exposing user credentials.
 
 ---
 
 ## Asynchronous Job Processing
 
-Designed a scalable background job system using Redis and BullMQ to process large playlist conversions without blocking API requests.
+Playlist conversion can take time and may fail due to API limitations.
+
+Instead of blocking API requests, conversion tasks are pushed to **BullMQ queues backed by Redis**, enabling:
+
+* Scalable background processing
+* Non-blocking API requests
+* Real-time conversion tracking
+* Retry-safe execution
+* Failure recovery
+
+This mirrors production-style backend architectures used for long-running workloads.
 
 ---
 
 ## Retry & Recovery Pipeline
 
-Built a resilient retry mechanism supporting:
+Built a resilient recovery system to handle failures caused by:
 
-- failed-track recovery
-- exponential backoff
-- quota failure handling
-- OAuth reconnect flows
-- partial-success conversion states
+* API quota exhaustion
+* OAuth expiration
+* Transient API failures
+* Playlist insertion failures
+
+Instead of rerunning entire conversions, users can retry **only failed tracks**, improving reliability and reducing wasted API calls.
 
 ---
 
 ## Track Normalization System
 
-Implemented normalization pipelines using:
+Implemented a platform-agnostic track normalization pipeline using:
 
-- ISRC metadata mapping
-- artist/title matching
-- parallel processing with Promise.all
+* ISRC metadata mapping
+* Artist/title matching
+* Album metadata
+* Parallel processing with `Promise.all`
 
-to improve cross-platform song matching reliability.
-
----
-
-## Production-Style Backend Design
-
-Structured the backend with:
-
-- modular controllers/services
-- reusable middleware
-- centralized async error handling
-- scalable API organization
-- protected routes and JWT auth
+to improve cross-platform track matching reliability.
 
 ---
 
-# Folder Structure
+## Production-Oriented Backend Design
 
-```txt
+Designed a modular backend architecture with:
+
+* Controllers
+* Middleware
+* Workers
+* Queues
+* Reusable services
+* Centralized async error handling
+* JWT authentication
+* Protected APIs
+
+---
+
+# 🔥 Key Engineering Challenges Solved
+
+### YouTube API Quota Exhaustion
+
+Handled quota failures gracefully without breaking the conversion pipeline.
+
+Implemented retry-safe recovery and partial success handling.
+
+---
+
+### 409 ABORTED Playlist Insertion Errors
+
+Encountered transient YouTube API failures during playlist insertion.
+
+Implemented exponential backoff retry logic to improve reliability.
+
+---
+
+### OAuth Token Expiration & Session Handling
+
+Designed reconnect flows allowing users to securely reconnect accounts without breaking active conversion workflows.
+
+Implemented graceful token invalidation handling for improved user experience.
+
+---
+
+### Queue-Worker Synchronization Issues
+
+Debugged BullMQ queue-worker mismatches that caused jobs to remain unprocessed during development.
+
+---
+
+### Cross-Platform Song Matching
+
+Built normalization logic to improve Spotify → YouTube track matching reliability.
+
+---
+
+# 📂 Project Structure
+
+```text
 music-manager/
+│
+├── assets/
 │
 ├── backend/
 │   ├── controllers/
-│   ├── routes/
-│   ├── models/
-│   ├── workers/
-│   ├── queues/
 │   ├── middleware/
+│   ├── models/
+│   ├── queues/
+│   ├── routes/
+│   ├── workers/
 │   └── utils/
 │
-├── frontend/
+├── music-manager-frontend/
 │   ├── app/
 │   ├── components/
-│   ├── lib/
-│   └── styles/
+│   └── lib/
 │
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-# Environment Variables
+# 🔐 Environment Variables
 
-## Backend `.env`
+### Backend `.env`
 
 ```env
 PORT=5000
+NODE_ENV=development
 
 MONGO_URI=your_mongodb_uri
 
@@ -161,9 +308,7 @@ REDIS_URL=your_redis_url
 FRONTEND_URL=http://localhost:3000
 ```
 
----
-
-## Frontend `.env.local`
+### Frontend `.env.local`
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
@@ -171,77 +316,76 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ---
 
-# Local Development Setup
+# 💻 Local Development Setup
 
 ## 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/music-manager.git
+git clone https://github.com/mpgit03/music-manager-saas.git
 ```
 
 ---
 
-## 2. Install Backend Dependencies
+## 2. Install Dependencies
+
+### Backend
 
 ```bash
 cd backend
 npm install
 ```
 
----
-
-## 3. Install Frontend Dependencies
+### Frontend
 
 ```bash
-cd ../frontend
+cd ../music-manager-frontend
 npm install
 ```
 
 ---
 
-## 4. Start Backend
+## 3. Start Development Servers
+
+### Backend Server
 
 ```bash
 npm run dev
 ```
 
----
-
-## 5. Start Frontend
+### Worker Process
 
 ```bash
+npm run worker
+```
+
+### Frontend
+
+```bash
+cd ../music-manager-frontend
 npm run dev
 ```
 
 ---
 
-# Key Engineering Challenges Solved
+# 🎯 Future Improvements
 
-- Handling YouTube API quota failures gracefully
-- Designing retry-safe async conversion jobs
-- Managing OAuth token expiration and reconnect flows
-- Building scalable queue-worker architecture
-- Cross-platform track matching reliability
-- Partial conversion recovery
-- Parallel processing optimization
-
----
-
-# Future Improvements
-
-- Apple Music Integration
-- Playlist Syncing
-- Real-time WebSocket Updates
-- User Analytics Dashboard
-- Collaborative Playlist Support
-- Dockerized Deployment
-- CI/CD Pipelines
+* Apple Music Integration
+* Playlist Syncing Across Platforms
+* WebSocket-Based Real-Time Updates
+* AI Playlist Recommendations
+* Dockerized Deployment
+* CI/CD Pipelines
+* Collaborative Playlist Support
+* User Analytics Dashboard
 
 ---
 
-# Author
+# 👨‍💻 Author
 
-## Marut Panwar
+### Marut Panwar
 
-- GitHub: https://github.com/mpgit03
-- LinkedIn: https://www.linkedin.com/in/MarutPanwar
+**GitHub**
+https://github.com/mpgit03
+
+**LinkedIn**
+https://www.linkedin.com/in/MarutPanwar

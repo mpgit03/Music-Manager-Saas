@@ -44,7 +44,7 @@ export default function LoginPage() {
         throw new Error(data.message || "Login failed");
       }
 
-      //  Save token
+      // Save token
       localStorage.setItem("token", data.token);
 
       // Redirect
