@@ -70,3 +70,9 @@ Thumbs.db
 # Secrets / Keys
 # ==========================
 *.pem
+# Local container overrides
+docker-compose.override.yaml
+compose.override.yaml
+
+# Local project environment files
+backend/.env
